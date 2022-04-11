@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Shop;
-use App\Models\Owner;
+use Illuminate\Support\Facades\Storage;
 
 class ShopController extends Controller
 {
@@ -18,11 +18,11 @@ class ShopController extends Controller
             // dd($request->route()->parameter('shop')); //文字列
             // dd(Auth::id()); //数字
             $id = $request->route()->parameter('shop'); //shopのid取得
-            if(!is_null($id)){ //null判定
+            if (!is_null($id)) { //null判定
                 $shopsOwnerId = Shop::findOrFail($id)->owner_id;
                 $shopId = (int)$shopsOwnerId; //キャスト 文字列→数値に型変換
                 $ownerId = Auth::id();
-                if($shopId !== $ownerId){ //同じでなかったら
+                if ($shopId !== $ownerId) { //同じでなかったら
                     abort(404); //404画面表示
                 }
             }
@@ -38,28 +38,20 @@ class ShopController extends Controller
         return view('owner.shops.index', compact('shops'));
     }
 
-
     public function edit($id)
     {
-        $owner = Owner::findOrFail($id);
-        // dd($owner);
-        return view('admin.owners.edit', compact('owner'));
+        $shop = Shop::findOrFail($id);
+        return view('owner.shops.edit', compact('shop'));
     }
-
 
     public function update(Request $request, $id)
     {
-        $owner = Owner::findOrFail($id);
-        $owner->name = $request->name;
-        $owner->email = $request->email;
-        $owner->password = Hash::make($request->password);
-        $owner->save();
+        $imageFile = $request->image;
+        if (!is_null($imageFile) && $imageFile->isValid()) {
+            Storage::putFile('public/shops', $imageFile); //第一引数で保存したいフォルダを指定
+        }
 
         return redirect()
-            ->route('admin.owners.index')
-            ->with([
-                'message' => 'オーナー情報を更新しました。',
-                'status' => 'info'
-            ]);
+            ->route('owner.shops.index');
     }
 }
